@@ -38,8 +38,8 @@ Powerbank do zasilania płytki STM32F411<br/><br/>
 ## Jak uruchomić
 ### Podłączenie	
 <img src="images/połączenie.jpg" alt="Schemat podłączenia" width="700px" />
-### Uwaga! GPIOX to dowolny port GPIO
-
+Uwaga! GPIOX to dowolny port GPIO
+<br /><br />
 
 |TB6612FNG |   STM32  |
 |----------|----------|
