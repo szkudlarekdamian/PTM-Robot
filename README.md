@@ -56,7 +56,7 @@ Uwaga! GPIOX to dowolny port GPIO
 
 | HC-SR04 | STM32 |
 |---------|---------|
-|   VCC   |  VCC 3V |
+|   VCC   |  VCC 5V |
 |   Trig   |   GPIOD12   |
 |   Echo   |   GPIOD1  |
 |   GND   |   GND  |
