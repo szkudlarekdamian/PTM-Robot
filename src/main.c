@@ -5,8 +5,6 @@ int a=0;
 double distance;
 int pwm = 640;
 double ADC_Result=0;
-int v =0;
-
 
 /*
  GPIOC:
@@ -19,14 +17,14 @@ int v =0;
  12 - TRIGGER - hcsr04
  1 - ECHO - hcsr04
 
-GPIOA
-1 - ADC
+ GPIOA
+ 1 - ADC
 
  GPIOB
  4 - PWM - sprakFun
  GPIOA
  5 - PWM - sprakFun
-  */
+*/
 
 void spin(){
 	// Motor A
@@ -50,7 +48,7 @@ void init_hcsr04(){
 	RCC_AHB1PeriphClockCmd(RCC_AHB1Periph_GPIOD, ENABLE);
 	RCC_APB1PeriphClockCmd(RCC_APB1Periph_TIM4, ENABLE);
 	RCC_APB1PeriphClockCmd(RCC_APB1Periph_TIM5, ENABLE);
-    RCC_APB2PeriphClockCmd(RCC_APB2Periph_SYSCFG, ENABLE);
+    	RCC_APB2PeriphClockCmd(RCC_APB2Periph_SYSCFG, ENABLE);
 
 	GPIO_InitTypeDef GPIO_InitStructure;
 	GPIO_InitStructure.GPIO_Pin = GPIO_Pin_12;
@@ -66,6 +64,7 @@ void init_hcsr04(){
 	GPIO_InitStructure.GPIO_PuPd = GPIO_PuPd_DOWN;
 	GPIO_Init(GPIOD, &GPIO_InitStructure);
 
+	//5.25Hz -> co 200ms wyzwala(TRIGGER) sygnał z czujnika
 	TIM_TimeBaseInitTypeDef TIM_TimeBaseStructure;
 	TIM_TimeBaseStructure.TIM_Period = 6399;
 	TIM_TimeBaseStructure.TIM_Prescaler = 2499;
@@ -73,6 +72,7 @@ void init_hcsr04(){
 	TIM_TimeBaseStructure.TIM_CounterMode = TIM_CounterMode_Up;
 	TIM_TimeBaseInit(TIM4, &TIM_TimeBaseStructure);
 
+	//0.06Hz -> co 16.66s
 	TIM_TimeBaseStructure.TIM_Period = 55999;
 	TIM_TimeBaseStructure.TIM_Prescaler = 24999;
 	TIM_TimeBaseStructure.TIM_ClockDivision = TIM_CKD_DIV1;
@@ -106,7 +106,7 @@ void init_hcsr04(){
 	EXTI_InitStructure.EXTI_LineCmd = ENABLE;
 	EXTI_Init(&EXTI_InitStructure);
 	SYSCFG_EXTILineConfig(EXTI_PortSourceGPIOD, EXTI_PinSource1);
-
+	//PWM = 4, więc przepełni się po 125us
 	TIM4->CCR1 = 4;
 	TIM_Cmd(TIM4, ENABLE);
 }
@@ -126,7 +126,7 @@ void EXTI1_IRQHandler(void) {
 		TIM_Cmd(TIM5, DISABLE);
 	}
 	if (distance < 20) {
-			spin();
+		spin();
 	} else {
 		straight();
 	}
@@ -155,12 +155,8 @@ void init_motor(){
 	GPIO_Init(GPIOB, &GPIO_InitStructure);
 
 	TIM_TimeBaseInitTypeDef TIM_TimeBaseStructure;
-	TIM_TimeBaseStructure.TIM_Period = 6399;
-	TIM_TimeBaseStructure.TIM_Prescaler = 2499;
-	TIM_TimeBaseStructure.TIM_ClockDivision = TIM_CKD_DIV1;
-	TIM_TimeBaseStructure.TIM_CounterMode = TIM_CounterMode_Up;
-	TIM_TimeBaseInit(TIM2, &TIM_TimeBaseStructure);
-
+	
+	//525Hz -> co 1,904ms 
 	TIM_TimeBaseStructure.TIM_Period = 639;
 	TIM_TimeBaseStructure.TIM_Prescaler = 249;
 	TIM_TimeBaseStructure.TIM_ClockDivision = TIM_CKD_DIV1;
@@ -175,12 +171,14 @@ void init_motor(){
 
 	TIM_OC1Init(TIM2, &TIM_OCInitStructure);
 	TIM_OC1PreloadConfig(TIM2, TIM_OCPreload_Enable);
-
+	
+	//PWM B
 	GPIO_PinAFConfig(GPIOA, GPIO_PinSource5, GPIO_AF_TIM2);
 	GPIO_InitStructure.GPIO_Pin = GPIO_Pin_5;
 	GPIO_InitStructure.GPIO_Mode = GPIO_Mode_AF;
 	GPIO_Init(GPIOA, &GPIO_InitStructure);
 
+	//525Hz -> co 1,904ms 
 	TIM_TimeBaseStructure.TIM_Period = 639;
 	TIM_TimeBaseStructure.TIM_Prescaler = 249;
 	TIM_TimeBaseStructure.TIM_ClockDivision = TIM_CKD_DIV1;
@@ -195,6 +193,7 @@ void init_motor(){
 	TIM_OC1Init(TIM3, &TIM_OCInitStructure);
 	TIM_OC1PreloadConfig(TIM3, TIM_OCPreload_Enable);
 
+	//PWM A
 	GPIO_PinAFConfig(GPIOB, GPIO_PinSource4, GPIO_AF_TIM3);
 	GPIO_InitStructure.GPIO_Pin = GPIO_Pin_4;
 	GPIO_InitStructure.GPIO_Mode = GPIO_Mode_AF;
@@ -210,6 +209,7 @@ void init_ai_bi(){
 	RCC_AHB1PeriphClockCmd(RCC_AHB1Periph_GPIOC, ENABLE);
 
 	GPIO_InitTypeDef GPIO_InitStructure;
+	//AIN - BIN
 	GPIO_InitStructure.GPIO_Pin = GPIO_Pin_1 | GPIO_Pin_2 | GPIO_Pin_3
 			| GPIO_Pin_4;
 	GPIO_InitStructure.GPIO_Mode = GPIO_Mode_OUT;
@@ -258,14 +258,14 @@ int main(void)
 	init_ai_bi();
 	straight();
 	adc();
-		for(;;)
-		{
-			ADC_SoftwareStartConv(ADC1);
-			while(ADC_GetFlagStatus(ADC1, ADC_FLAG_EOC) == RESET);
-			ADC_Result = ADC_GetConversionValue(ADC1);
-			pwm = ADC_Result/6.4;
-			TIM2->CCR1 = pwm;
-			TIM3->CCR1 = pwm;
-
-		}
+		
+	for(;;)
+	{
+		ADC_SoftwareStartConv(ADC1);
+		while(ADC_GetFlagStatus(ADC1, ADC_FLAG_EOC) == RESET);
+		ADC_Result = ADC_GetConversionValue(ADC1);
+		pwm = ADC_Result/6.4;
+		TIM2->CCR1 = pwm;
+		TIM3->CCR1 = pwm;
+	}
 }
